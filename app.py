@@ -91,6 +91,62 @@ def login():
             msg = f"Database Error: {err}"
     return render_template('login.html', msg=msg)
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    msg = ''
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validation
+        if not username or not email or not password or not confirm_password:
+            msg = 'Please fill out all fields!'
+        elif password != confirm_password:
+            msg = 'Passwords do not match!'
+        elif len(password) < 6:
+            msg = 'Password must be at least 6 characters long!'
+        elif len(username) < 3:
+            msg = 'Username must be at least 3 characters long!'
+        else:
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor(dictionary=True)
+                
+                # Check if username already exists
+                cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+                account = cursor.fetchone()
+                
+                if account:
+                    msg = 'Username already exists! Please choose another one.'
+                else:
+                    # Check if email already exists
+                    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+                    email_exists = cursor.fetchone()
+                    
+                    if email_exists:
+                        msg = 'Email already registered! Please use another email.'
+                    else:
+                        # Insert new user
+                        cursor.execute(
+                            'INSERT INTO users (username, email, password) VALUES (%s, %s, %s)',
+                            (username, email, password)
+                        )
+                        conn.commit()
+                        cursor.close()
+                        conn.close()
+                        msg = 'Registration successful! You can now login.'
+                        return render_template('login.html', msg=msg)
+                
+                cursor.close()
+                conn.close()
+                
+            except mysql.connector.Error as err:
+                msg = f"Database Error: {err}"
+    
+    return render_template('register.html', msg=msg)
+
 @app.route('/dashboard')
 def dashboard():
     if 'loggedin' in session:

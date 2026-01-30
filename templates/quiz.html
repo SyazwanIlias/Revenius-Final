@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenius - AI Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='reveniuslogo.png') }}">
+    
+    <style>
+        /* --- QUIZ STYLES --- */
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Question Cards (Active Quiz) */
+        .quiz-option {
+            display: block; margin-bottom: 10px; cursor: pointer; position: relative;
+        }
+        .quiz-option input[type="radio"] { position: absolute; opacity: 0; cursor: pointer; }
+        
+        .option-content {
+            display: block; padding: 1rem;
+            background-color: #03002E; border: 1px solid var(--border-color);
+            border-radius: 8px; transition: all 0.2s; color: var(--text-color);
+        }
+        .quiz-option:hover .option-content { border-color: var(--primary-color); }
+        .quiz-option input[type="radio"]:checked + .option-content {
+            background-color: rgba(94, 129, 244, 0.1); border-color: var(--primary-color); font-weight: bold;
+        }
+
+        /* --- REVIEW STYLES (For Results Screen) --- */
+        .review-container { text-align: left; margin-top: 2rem; }
+        
+        .review-card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+        }
+
+        .review-option {
+            padding: 12px; margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px; color: var(--text-muted);
+            display: flex; justify-content: space-between;
+        }
+
+        /* Correct/Wrong Indicators */
+        .review-correct {
+            border-color: #10b981; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: bold;
+        }
+        .review-wrong {
+            border-color: #ef4444; background-color: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: bold;
+        }
+        .review-actual-correct {
+            border-left: 4px solid #10b981; background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .hidden { display: none !important; }
+        .score-big { font-size: 3rem; color: var(--primary-color); font-weight: bold; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="/" class="logo">Revenius</a>
+        <a href="/upload" class="btn btn-secondary">Back to Upload</a>
+    </header>
+
+    <div class="container">
+        
+        <div id="loading-state" class="card" style="text-align: center; padding: 4rem;">
+            <div class="spinner"></div>
+            <h3>Generating Quiz</h3>
+            <p style="color: var(--text-muted);">Analyzing your document...</p>
+        </div>
+
+        <div id="quiz-container" class="hidden">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2>Knowledge Check</h2>
+                <p style="color: var(--text-muted);">Select the correct answer for each question.</p>
+            </div>
+            <form id="quiz-form">
+                <div id="questions-wrapper"></div>
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn">Submit Answers</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="results-container" class="card hidden" style="text-align: center;">
+            <h2>Quiz Results</h2>
+            <p style="color: var(--text-muted);">You scored</p>
+            
+            <div id="final-score" class="score-big">0 / 0</div>
+            
+            <div id="review-section" class="review-container"></div>
+
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="location.reload()" class="btn btn-secondary">Try Again</button>
+                <button id="save-quiz-btn" class="btn">Save to Library</button>
+            </div>
+            <p id="save-msg" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // Global variables
+        let fetchedQuizData = []; // Store the raw questions here
+        let currentQuizScore = 0;
+        let userSelectedAnswers = []; 
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingState = document.getElementById('loading-state');
+            const quizContainer = document.getElementById('quiz-container');
+            const questionsWrapper = document.getElementById('questions-wrapper');
+
+            // 1. Fetch Data
+            fetch('/api/generate-quiz')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        loadingState.innerHTML = `<h3 style="color:var(--danger-color)">Error: ${data.error}</h3>`;
+                        return;
+                    }
+
+                    // Save data globally
+                    fetchedQuizData = data; 
+
+                    loadingState.classList.add('hidden');
+                    quizContainer.classList.remove('hidden');
+
+                    // Build Quiz Cards
+                    fetchedQuizData.forEach((q, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'card question-card';
+                        
+                        let optionsHtml = '';
+                        q.options.forEach((optText, i) => {
+                            const letter = String.fromCharCode(65 + i); 
+                            optionsHtml += `
+                                <label class="quiz-option">
+                                    <input type="radio" name="q${index + 1}" value="${letter}">
+                                    <span class="option-content"><strong>${letter}.</strong> ${optText}</span>
+                                </label>
+                            `;
+                        });
+
+                        card.innerHTML = `
+                            <h3 style="margin-bottom: 1.5rem;">${index + 1}. ${q.question}</h3>
+                            <div class="options-group">${optionsHtml}</div>
+                        `;
+                        questionsWrapper.appendChild(card);
+                    });
+                });
+        });
+
+        // 2. Submit Logic (Generates Review)
+        document.getElementById('quiz-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let score = 0;
+            userSelectedAnswers = []; 
+            const reviewSection = document.getElementById('review-section');
+            reviewSection.innerHTML = ""; // Clear previous review if any
+
+            // Loop through GLOBAL fetched data to build review
+            fetchedQuizData.forEach((q, index) => {
+                // Find what user selected in the DOM
+                const selectedInput = document.querySelector(`input[name="q${index + 1}"]:checked`);
+                const myAns = selectedInput ? selectedInput.value : null;
+                userSelectedAnswers.push(myAns);
+
+                // Score Calculation
+                if (myAns === q.correct) {
+                    score++;
+                }
+
+                // --- BUILD REVIEW CARD HTML ---
+                const reviewCard = document.createElement('div');
+                reviewCard.className = 'review-card';
+                
+                let reviewOptionsHtml = '';
+                
+                q.options.forEach((optText, i) => {
+                    const letter = String.fromCharCode(65 + i);
+                    
+                    let classes = 'review-option';
+                    let badge = '';
+
+                    // Logic for Styling
+                    if (myAns === letter) {
+                        if (myAns === q.correct) {
+                            classes += ' review-correct';
+                            badge = '✅ Your Answer';
+                        } else {
+                            classes += ' review-wrong';
+                            badge = '❌ Your Answer';
+                        }
+                    }
+
+                    // Always highlight the actual correct answer if user was wrong
+                    if (letter === q.correct && myAns !== q.correct) {
+                        classes += ' review-actual-correct';
+                        badge = badge ? badge : 'Correct Answer';
+                    }
+
+                    reviewOptionsHtml += `
+                        <div class="${classes}">
+                            <span><strong>${letter}.</strong> ${optText}</span>
+                            <span>${badge}</span>
+                        </div>
+                    `;
+                });
+
+                reviewCard.innerHTML = `
+                    <h3 style="margin-bottom: 1rem; color: white;">${index + 1}. ${q.question}</h3>
+                    <div style="display: grid; gap: 5px;">${reviewOptionsHtml}</div>
+                `;
+                
+                reviewSection.appendChild(reviewCard);
+            });
+
+            // Update Score & Switch View
+            currentQuizScore = score;
+            document.getElementById('final-score').innerText = `${score} / ${fetchedQuizData.length}`;
+            
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('results-container').classList.remove('hidden');
+            
+            window.scrollTo(0, 0);
+        });
+
+        // 3. Save Logic
+        document.getElementById('save-quiz-btn').addEventListener('click', function() {
+            const payload = {
+                type: 'quiz',
+                score: `${currentQuizScore}/${fetchedQuizData.length}`,
+                answers: userSelectedAnswers
+            };
+
+            const btn = this;
+            const msg = document.getElementById('save-msg');
+            btn.innerText = "Saving...";
+
+            fetch('/save_content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    msg.innerText = "Saved successfully!";
+                    msg.style.color = "#10b981";
+                    btn.innerText = "Saved";
+                    btn.disabled = true;
+                } else {
+                    msg.innerText = "Error: " + data.message;
+                    msg.style.color = "var(--danger-color)";
+                    btn.innerText = "Save to Library";
+                }
+            });
+        });
+    </script>
+</body>
+</html>

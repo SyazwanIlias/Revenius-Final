@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Revenius | Summary Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='reveniuslogo.png') }}">
+    
+    <style>
+        /* --- Loading Spinner Styles (Same as Quiz) --- */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .hidden { display: none !important; }
+        
+        /* Markdown Content Styling */
+        .result-box h1, .result-box h2, .result-box h3 { color: var(--primary-color); margin-top: 1rem; }
+        .result-box ul { margin-left: 20px; margin-bottom: 1rem; }
+        .result-box p { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('dashboard') }}" class="logo">Revenius</a>
+        <nav>
+            <a href="{{ url_for('upload') }}" class="btn btn-secondary">New Upload</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        
+        <div id="loading-state" class="card" style="text-align: center; padding: 4rem;">
+            <div class="spinner"></div>
+            <h3>Generating Summary</h3>
+            <p style="color: var(--text-muted);">Analyzing your document's key points...</p>
+        </div>
+
+        <div id="summary-container" class="card hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Generated Summary</h2>
+                <button id="save-btn" class="btn" onclick="saveContent('summary')">Save to Library</button>
+            </div>
+            
+            <div class="result-box" id="summary-content">
+                </div>
+            
+            <p id="save-msg" style="margin-top: 10px; text-align: right; font-size: 0.9rem;"></p>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingState = document.getElementById('loading-state');
+            const summaryContainer = document.getElementById('summary-container');
+            const contentBox = document.getElementById('summary-content');
+
+            // Fetch the summary from the new API
+            fetch('/api/generate-summary')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        loadingState.innerHTML = `<h3 style="color:var(--danger-color)">Error: ${data.error}</h3>`;
+                        return;
+                    }
+
+                    // Success: Inject HTML and Switch Views
+                    contentBox.innerHTML = data.html;
+                    loadingState.classList.add('hidden');
+                    summaryContainer.classList.remove('hidden');
+                })
+                .catch(err => {
+                    console.error(err);
+                    loadingState.innerHTML = `<h3>Network Error</h3><p>Could not connect to server.</p>`;
+                });
+        });
+
+        // Function to handle saving (Modified to use fetch if main.js isn't doing it correctly)
+        function saveContent(type) {
+            const btn = document.getElementById('save-btn');
+            const msg = document.getElementById('save-msg');
+            
+            btn.innerText = "Saving...";
+            
+            fetch('/save_content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    msg.innerText = "Saved to Library!";
+                    msg.style.color = "#10b981";
+                    btn.innerText = "Saved";
+                    btn.disabled = true;
+                } else {
+                    msg.innerText = "Error: " + data.message;
+                    msg.style.color = "var(--danger-color)";
+                    btn.innerText = "Save to Library";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

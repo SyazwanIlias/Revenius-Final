@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Revenius | Select Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='reveniuslogo.png') }}">
+
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('dashboard') }}" class="logo">Revenius</a>
+        <nav>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Upload</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2 style="text-align: center;">AI Tools</h2>
+            <p style="text-align: center; color: var(--text-muted);">Select an action to process your uploaded notes.</p>
+
+            <div class="options-grid">
+                <div class="option-card" onclick="window.location.href='{{ url_for('summary') }}'">
+                    <h3>Summarize</h3>
+                    <p>Generate a concise summary of your lecture notes.</p>
+                </div>
+
+                <div class="option-card" onclick="window.location.href='{{ url_for('quiz') }}'">
+                    <h3>Generate Quiz</h3>
+                    <p>Create multiple-choice questions to test your knowledge.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

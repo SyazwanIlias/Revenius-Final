@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Revenius | {{ content.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='reveniuslogo.png') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        /* --- Styles specifically for the Review View --- */
+        .quiz-score-banner {
+            text-align: center; 
+            padding: 1.5rem; 
+            background: rgba(94, 129, 244, 0.1); 
+            border: 1px solid var(--primary-color);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .review-card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .review-option {
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* State: User picked this and it was correct */
+        .review-correct {
+            border-color: #10b981; 
+            background-color: rgba(16, 185, 129, 0.15); 
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* State: User picked this and it was WRONG */
+        .review-wrong {
+            border-color: #ef4444; 
+            background-color: rgba(239, 68, 68, 0.15); 
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        /* State: This was the correct answer (shown when user was wrong) */
+        .review-actual-correct {
+            border-left: 4px solid #10b981;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+        
+        /* Badge for PDF visibility */
+        .badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('dashboard') }}" class="logo">Revenius</a>
+        <nav>
+            <a href="{{ url_for('mylibrary') }}" class="btn btn-secondary">Back to Library</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>{{ content.title }}</h2>
+                <button class="btn" onclick="downloadPDF()">Download PDF</button>
+            </div>
+            
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                Type: {{ content.content_type.capitalize() }} | Created: {{ content.created_at }}
+            </p>
+
+            <div class="result-box" id="content-area" style="padding: 1rem;">
+                
+                {% if content.content_type == 'summary' %}
+                    {{ content.output_text | markdown }}
+
+                {% elif content.content_type == 'quiz' and content.quiz_data %}
+                    
+                    <div class="quiz-score-banner">
+                        <h1 style="color: var(--primary-color); margin: 0;">Score: {{ content.quiz_data.my_score }}</h1>
+                        <p style="margin: 0.5rem 0 0 0;">Quiz Review</p>
+                    </div>
+
+                    {% for q in content.quiz_data.questions %}
+                        {% set q_index = loop.index0 %}
+                        {% set my_ans = content.quiz_data.my_answers[q_index] %}
+                        
+                        <div class="review-card">
+                            <h3 style="margin-bottom: 1rem;">{{ loop.index }}. {{ q.question }}</h3>
+                            
+                            <div style="display: grid; gap: 5px;">
+                                {% for opt in q.options %}
+                                    {% set letter = 'ABCDEF'[loop.index0] %}
+                                    
+                                    {% set ns = namespace(classes="review-option", badge="") %}
+
+                                    {% if my_ans == letter %}
+                                        {% if my_ans == q.correct %}
+                                            {% set ns.classes = ns.classes + " review-correct" %}
+                                            {% set ns.badge = "✅ Your Answer" %}
+                                        {% else %}
+                                            {% set ns.classes = ns.classes + " review-wrong" %}
+                                            {% set ns.badge = "❌ Your Answer" %}
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if letter == q.correct and my_ans != q.correct %}
+                                        {% set ns.classes = ns.classes + " review-actual-correct" %}
+                                        {% set ns.badge = "Correct Answer" %}
+                                    {% endif %}
+
+                                    <div class="{{ ns.classes }}">
+                                        <span><strong>{{ letter }}.</strong> {{ opt }}</span>
+                                        <span>{{ ns.badge }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                {% else %}
+                    <p>Error: Content data is missing or corrupted.</p>
+                {% endif %}
+                </div>
+        </div>
+    </div>
+    
+    <script>
+        function downloadPDF() {
+            const element = document.getElementById('content-area');
+            const btn = document.querySelector('button.btn');
+            
+            btn.innerText = "Downloading...";
+            
+            // --- PDF STYLING TWEAKS ---
+            // We temporarily swap colors to make it look good on white paper
+            const oldBg = element.style.backgroundColor;
+            const oldColor = element.style.color;
+            
+            // Set background to white, text to black
+            element.style.backgroundColor = "white";
+            element.style.color = "black";
+            
+            // Ensure the specific quiz cards have borders instead of dark backgrounds
+            const cards = element.querySelectorAll('.review-card');
+            cards.forEach(card => {
+                card.style.backgroundColor = "#fff";
+                card.style.border = "1px solid #ccc";
+                card.style.color = "black";
+            });
+
+            const opt = {
+                margin: 0.5,
+                filename: '{{ content.title | replace(" ", "_") }}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                // --- RESTORE DARK MODE ---
+                element.style.backgroundColor = oldBg;
+                element.style.color = oldColor;
+                
+                cards.forEach(card => {
+                    card.style.backgroundColor = ""; // Reset to CSS default
+                    card.style.border = "";
+                    card.style.color = "";
+                });
+                
+                btn.innerText = "Download PDF";
+            });
+        }
+    </script>
+</body>
+</html>

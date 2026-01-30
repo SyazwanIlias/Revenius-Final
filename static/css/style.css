@@ -1,0 +1,212 @@
+/* static/style.css */
+:root {
+    /* --- THEME COLORS --- */
+    /* Deep Dark Blue Background (User Requested) */
+    --background-color: #03002E;
+    
+    /* Slightly lighter blue for cards to create depth */
+    --card-bg: #0b0a40; 
+    
+    /* Vibrant Blue that glows against the dark background */
+    --primary-color: #5e81f4; 
+    --primary-hover: #4b6bcc;
+    
+    /* Text Colors for Dark Mode */
+    --text-color: #f1f5f9;      /* Off-white for main text */
+    --text-muted: #94a3b8;      /* Light gray for secondary text */
+    
+    /* Borders and Accents */
+    --border-color: #1e1b5e;
+    --danger-color: #ef4444;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* --- Layout Components --- */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+    width: 100%;
+}
+
+.card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px; /* Slightly more rounded for modern look */
+    /* Subtle glow shadow instead of standard black shadow */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+/* --- Header/Nav --- */
+header {
+    background-color: var(--card-bg);
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+/* --- Forms & Buttons --- */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+input[type="text"], 
+input[type="password"],
+input[type="email"],
+input[type="file"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #03002E; /* Match body bg for inputs */
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(94, 129, 244, 0.2); /* Blue Glow */
+}
+
+/* Fix file input text color */
+input[type="file"] {
+    color: var(--text-muted);
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(94, 129, 244, 0.1);
+}
+
+/* --- Specific Page Styles --- */
+.auth-container {
+    max-width: 400px;
+    margin: 5rem auto;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.upload-area {
+    border: 2px dashed var(--border-color);
+    background-color: rgba(255, 255, 255, 0.02);
+    padding: 3rem;
+    text-align: center;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    transition: border-color 0.3s;
+}
+
+.upload-area:hover {
+    border-color: var(--primary-color);
+}
+
+.upload-area h3 {
+    color: var(--text-color);
+}
+
+.options-grid {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.option-card {
+    flex: 1;
+    text-align: center;
+    padding: 3rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.option-card:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(94, 129, 244, 0.05);
+    transform: translateY(-5px);
+}
+
+.option-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* Result box in Summary Page */
+.result-box {
+    background: #03002E; /* Darker than card */
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    min-height: 300px;
+    color: var(--text-muted);
+}

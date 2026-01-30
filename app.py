@@ -22,7 +22,7 @@ def to_markdown(text):
 app.secret_key = 'your_secret_key'
 
 # Replace with your actual valid API Key
-os.environ["GEMINI_API_KEY"] = "AIzaSyD3rhNGyRzdoIBc3zNSARETI_zk7y19DF0" 
+os.environ["GEMINI_API_KEY"] = "API KEY HERE" 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # Database Connection
